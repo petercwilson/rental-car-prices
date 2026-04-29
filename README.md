@@ -1,21 +1,57 @@
 # Rental Car Price Scraper
 
-This project is a Node.js TypeScript application that scrapes rental car prices from Costco Travel.
+A Node.js TypeScript application that scrapes rental car prices from [Costco Travel](https://www.costcotravel.com/Rental-Cars) for a specific pickup location and date range.
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) v18 or higher
+- npm
 
 ## Setup
 
 1. Clone this repository.
 2. Run `npm install` to install dependencies.
-3. Create a `.env` file based on the `.env.example` template.
+3. Install the Playwright browser:
+   ```bash
+   npx playwright install chromium
+   ```
+4. Copy `.env.example` to `.env` and fill in your search parameters:
+   ```bash
+   cp .env.example .env
+   ```
+
+## Configuration
+
+Edit `.env` with your desired search:
+
+| Variable          | Description                                  | Example          |
+|-------------------|----------------------------------------------|------------------|
+| `PICKUP_LOCATION` | Airport code or city name                    | `LAX`            |
+| `PICKUP_DATE`     | Pickup date (`MM/DD/YYYY`)                   | `06/01/2026`     |
+| `PICKUP_TIME`     | Pickup time (12-hour format)                 | `10:00 AM`       |
+| `DROPOFF_DATE`    | Dropoff date (`MM/DD/YYYY`)                  | `06/07/2026`     |
+| `DROPOFF_TIME`    | Dropoff time (12-hour format)                | `10:00 AM`       |
+| `HEADLESS`        | `true` to run invisibly, `false` to see the browser | `true`    |
 
 ## Usage
-
-Run the scraper using the following command:
 
 ```bash
 npm run scrape
 ```
 
+Results are printed to the console, sorted by total price (cheapest first).
+
+### Debugging
+
+Set `HEADLESS=false` in your `.env` to watch the browser interact with the page in real time — useful when no results are returned.
+
+### Building (optional)
+
+```bash
+npm run build   # compiles TypeScript to dist/
+npm start       # runs the compiled output
+```
+
 ## Legal Disclaimer
 
-Please review the Terms of Service of Costco Travel before using this scraper.
+Please review the [Terms of Service](https://www.costco.com/terms-and-conditions-of-use.html) of Costco Travel before using this scraper. This tool is intended for personal use only.

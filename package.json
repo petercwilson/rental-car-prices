@@ -1,0 +1,23 @@
+{
+  "name": "rental-car-prices",
+  "version": "1.0.0",
+  "description": "This project is a Node.js TypeScript application that scrapes rental car prices from Costco Travel.",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "ts-node src/scraper.ts",
+    "build": "tsc",
+    "start": "node dist/scraper.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "playwright": "^1.55.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
