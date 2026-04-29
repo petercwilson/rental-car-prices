@@ -38,8 +38,6 @@ async function scrape(): Promise<void> {
 
   const browser = await chromium.launch({ headless });
   const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
     viewport: { width: 1280, height: 900 },
   });
   const page = await context.newPage();
@@ -227,8 +225,8 @@ function printResults(results: CarResult[]): void {
 
   // Sort by price ascending (extract numeric value)
   const sorted = [...results].sort((a, b) => {
-    const toNum = (s: string) => parseFloat(s.replace(/[^0-9.]/g, "")) || Infinity;
-    return toNum(a.price) - toNum(b.price);
+    const extractNumericPrice = (s: string) => parseFloat(s.replace(/[^0-9.]/g, "")) || Infinity;
+    return extractNumericPrice(a.price) - extractNumericPrice(b.price);
   });
 
   sorted.forEach((r, i) => {
