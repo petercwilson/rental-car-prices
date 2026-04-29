@@ -32,6 +32,7 @@ Edit `.env` with your desired search:
 | `DROPOFF_DATE`    | Dropoff date (`MM/DD/YYYY`)                  | `06/07/2026`     |
 | `DROPOFF_TIME`    | Dropoff time (12-hour format)                | `10:00 AM`       |
 | `HEADLESS`        | `true` to run invisibly, `false` to see the browser | `true`    |
+| `PREFLIGHT_STRICT`| `true` to abort when connectivity precheck fails     | `false`   |
 | `PROXY_SERVER`    | Optional proxy URL when Costco blocks your IP | `http://host:port` |
 | `PROXY_USERNAME`  | Optional proxy username                        | `myuser`         |
 | `PROXY_PASSWORD`  | Optional proxy password                        | `mypassword`     |
@@ -52,7 +53,7 @@ A `scrape` workflow is included in `.github/workflows/scrape.yml`. Trigger it ma
 
 Set `HEADLESS=false` in your `.env` to watch the browser interact with the page in real time — useful when no results are returned.
 
-If you are running in a cloud/devcontainer environment, Costco Travel may timeout or block the request from that IP range. The scraper now performs a connectivity precheck and will fail fast with a clear error if the site is unreachable. In that case, run locally or configure `PROXY_SERVER`.
+If you are running in a cloud/devcontainer environment, Costco Travel may timeout or block the request from that IP range. The scraper performs a connectivity precheck and logs the result. By default that precheck is warning-only; set `PREFLIGHT_STRICT=true` if you want it to fail fast instead. If Costco is blocked from your environment, run locally or configure `PROXY_SERVER`.
 
 ### Building (optional)
 

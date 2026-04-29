@@ -41,6 +41,7 @@ async function scrape(): Promise<void> {
   const dropoffDate = getEnv("DROPOFF_DATE");
   const dropoffTime = getEnv("DROPOFF_TIME");
   const headless = getEnv("HEADLESS", "true") !== "false";
+  const strictPreflight = getEnv("PREFLIGHT_STRICT", "false") === "true";
 
   console.log("=== Costco Travel Rental Car Price Scraper ===");
   console.log(`Location : ${pickupLocation}`);
@@ -49,10 +50,19 @@ async function scrape(): Promise<void> {
   console.log(`Headless : ${headless}`);
   console.log("==============================================\n");
 
-  const preflight = await preflightConnectivity();
-  console.log(
-    `Preflight OK: ${preflight.url} responded with HTTP ${preflight.status}`
-  );
+  try {
+    const preflight = await preflightConnectivity();
+    console.log(
+      `Preflight OK: ${preflight.url} responded with HTTP ${preflight.status}`
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (strictPreflight) {
+      throw error;
+    }
+    console.warn(`Preflight warning: ${message}`);
+    console.warn("Continuing anyway because PREFLIGHT_STRICT is false.");
+  }
 
   const proxyServer = process.env.PROXY_SERVER?.trim();
   const proxy = proxyServer
