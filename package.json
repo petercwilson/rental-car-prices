@@ -4,7 +4,7 @@
   "description": "This project is a Node.js TypeScript application that scrapes rental car prices from Costco Travel.",
   "main": "index.js",
   "scripts": {
-    "scrape": "npx ts-node scr/scraper.ts",
+    "scrape": "npx ts-node src/scraper.ts",
     "build": "tsc",
     "start": "node dist/scraper.js"
   },
