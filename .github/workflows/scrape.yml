@@ -1,0 +1,55 @@
+name: Scrape Rental Car Prices
+
+on:
+  workflow_dispatch:
+    inputs:
+      pickup_location:
+        description: 'Pickup location (airport code or city, e.g. LAX)'
+        required: true
+        default: 'LAX'
+      pickup_date:
+        description: 'Pickup date (MM/DD/YYYY)'
+        required: true
+        default: '06/01/2026'
+      pickup_time:
+        description: 'Pickup time (e.g. 10:00 AM)'
+        required: true
+        default: '10:00 AM'
+      dropoff_date:
+        description: 'Dropoff date (MM/DD/YYYY)'
+        required: true
+        default: '06/07/2026'
+      dropoff_time:
+        description: 'Dropoff time (e.g. 10:00 AM)'
+        required: true
+        default: '10:00 AM'
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run scraper
+        env:
+          PICKUP_LOCATION: ${{ github.event.inputs.pickup_location }}
+          PICKUP_DATE: ${{ github.event.inputs.pickup_date }}
+          PICKUP_TIME: ${{ github.event.inputs.pickup_time }}
+          DROPOFF_DATE: ${{ github.event.inputs.dropoff_date }}
+          DROPOFF_TIME: ${{ github.event.inputs.dropoff_time }}
+          HEADLESS: 'true'
+        run: npm run scrape

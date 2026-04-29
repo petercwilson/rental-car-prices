@@ -11,9 +11,9 @@ A Node.js TypeScript application that scrapes rental car prices from [Costco Tra
 
 1. Clone this repository.
 2. Run `npm install` to install dependencies.
-3. Install the Playwright browser:
+3. Install the Playwright browser and its system dependencies:
    ```bash
-   npx playwright install chromium
+   npx playwright install --with-deps chromium
    ```
 4. Copy `.env.example` to `.env` and fill in your search parameters:
    ```bash
@@ -43,6 +43,10 @@ npm run scrape
 ```
 
 Results are printed to the console, sorted by total price (cheapest first).
+
+### GitHub Actions
+
+A `scrape` workflow is included in `.github/workflows/scrape.yml`. Trigger it manually from the **Actions** tab in GitHub by selecting **Scrape Rental Car Prices** and filling in the search parameters. The workflow automatically installs Chromium and its system dependencies, so no local setup is required.
 
 ### Debugging
 
