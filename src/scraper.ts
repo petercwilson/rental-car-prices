@@ -11,6 +11,19 @@ interface CarResult {
   features: string[];
 }
 
+interface PreflightResult {
+  url: string;
+  status: number;
+}
+
+const COSTCO_RENTAL_CAR_URLS = [
+  "https://www.costcotravel.com/Rental-Cars",
+  "https://www.costcotravel.com/rental-cars",
+  "https://www.costcotravel.com/Rental-Cars/",
+];
+
+const COSTCO_HOMEPAGE_URL = "https://www.costcotravel.com";
+
 function getEnv(key: string, fallback?: string): string {
   const value = process.env[key] ?? fallback;
   if (value === undefined) {
@@ -36,18 +49,52 @@ async function scrape(): Promise<void> {
   console.log(`Headless : ${headless}`);
   console.log("==============================================\n");
 
-  const browser = await chromium.launch({ headless });
+  const preflight = await preflightConnectivity();
+  console.log(
+    `Preflight OK: ${preflight.url} responded with HTTP ${preflight.status}`
+  );
+
+  const proxyServer = process.env.PROXY_SERVER?.trim();
+  const proxy = proxyServer
+    ? {
+        server: proxyServer,
+        username: process.env.PROXY_USERNAME?.trim() || undefined,
+        password: process.env.PROXY_PASSWORD?.trim() || undefined,
+      }
+    : undefined;
+
+  if (proxy) {
+    console.log(`Using proxy: ${proxy.server}`);
+  }
+
+  const browser = await chromium.launch({
+    headless,
+    proxy,
+    // Costco occasionally fails with ERR_HTTP2_PROTOCOL_ERROR in Playwright/Chromium.
+    // Disabling HTTP/2 makes navigation more reliable.
+    args: ["--disable-http2"],
+  });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    locale: "en-US",
+    timezoneId: "America/Los_Angeles",
+    extraHTTPHeaders: {
+      "Accept-Language": "en-US,en;q=0.9",
+      DNT: "1",
+      "Upgrade-Insecure-Requests": "1",
+    },
   });
-  const page = await context.newPage();
+  await context.addInitScript(() => {
+    Object.defineProperty(navigator, "webdriver", {
+      get: () => undefined,
+    });
+  });
 
   try {
     console.log("Navigating to Costco Travel...");
-    await page.goto("https://www.costcotravel.com/Rental-Cars", {
-      waitUntil: "domcontentloaded",
-      timeout: 60000,
-    });
+    const page = await gotoCostcoRentalCars(context);
 
     // Fill pickup location
     console.log("Filling in search form...");
@@ -132,6 +179,103 @@ async function scrape(): Promise<void> {
   } finally {
     await browser.close();
   }
+}
+
+async function gotoCostcoRentalCars(
+  context: import("playwright").BrowserContext
+): Promise<import("playwright").Page> {
+  const waitStrategies: Array<"commit" | "domcontentloaded" | "load"> = [
+    "commit",
+    "domcontentloaded",
+    "load",
+  ];
+  const attemptCount = 2;
+  const pageTimeout = 45000;
+
+  let lastError: unknown;
+
+  for (const url of COSTCO_RENTAL_CAR_URLS) {
+    for (const waitUntil of waitStrategies) {
+      for (let attempt = 1; attempt <= attemptCount; attempt++) {
+        const page = await context.newPage();
+        try {
+          console.log(
+            `Trying ${url} (waitUntil=${waitUntil}, attempt=${attempt}/${attemptCount})...`
+          );
+          await page.goto(url, {
+            waitUntil,
+            timeout: pageTimeout,
+          });
+          return page;
+        } catch (error) {
+          lastError = error;
+          const message = error instanceof Error ? error.message : String(error);
+          console.warn(`Navigation attempt failed: ${message}`);
+          await page.close().catch(() => undefined);
+        }
+      }
+    }
+  }
+
+  for (let attempt = 1; attempt <= attemptCount; attempt++) {
+    const page = await context.newPage();
+    try {
+      console.log(`Trying homepage fallback (attempt=${attempt}/${attemptCount})...`);
+      await page.goto(COSTCO_HOMEPAGE_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: pageTimeout,
+      });
+      await page.goto(COSTCO_RENTAL_CAR_URLS[0], {
+        waitUntil: "commit",
+        timeout: pageTimeout,
+      });
+      return page;
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`Homepage fallback failed: ${message}`);
+      await page.close().catch(() => undefined);
+    }
+  }
+
+  throw new Error(
+    `Unable to open Costco Travel rental cars page after multiple attempts. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+  );
+}
+
+async function preflightConnectivity(): Promise<PreflightResult> {
+  const timeoutMs = 12000;
+  const targets = [COSTCO_HOMEPAGE_URL, COSTCO_RENTAL_CAR_URLS[0]];
+
+  for (const target of targets) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const response = await fetch(target, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: {
+          "user-agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        },
+      });
+      clearTimeout(timeoutId);
+
+      if (response.ok || response.status === 403 || response.status === 429) {
+        return {
+          url: target,
+          status: response.status,
+        };
+      }
+    } catch {
+      // Continue trying other targets.
+    }
+  }
+
+  throw new Error(
+    "Costco Travel is not reachable from this environment. This often happens from cloud/devcontainer IPs. Try running locally or set PROXY_SERVER (and optional PROXY_USERNAME / PROXY_PASSWORD)."
+  );
 }
 
 async function extractResults(page: import("playwright").Page): Promise<CarResult[]> {
